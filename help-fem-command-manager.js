@@ -8,6 +8,10 @@
   // ### CommandManager *constructor*
   // Initializes the command manager.
   //
+  //     var HelpEsb = require('help-esb');
+  //     var esbClient = new HelpEsb.Client('tcp://localhost:1234');
+  //     esbClient.login('example-name');
+  //
   //     var CommandManager = require('help-fem-command-manager');
   //     var commandManager = new CommandManager(esbClient);
   //
