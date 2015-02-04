@@ -15,7 +15,7 @@
   //     var CommandManager = require('help-fem-command-manager');
   //     var commandManager = new CommandManager(esbClient);
   //
-  //     commandManager.addCommand('client chat event', 'start');
+  //     commandManager.addCommand('client chat event', 'customer', 'start');
   var CommandManager = function(esbClient) {
     this._esbClient = esbClient;
 
@@ -28,17 +28,21 @@
   // ### CommandManager.addCommand
   // Adds the command for the given event to the FEM router.
   //
-  //     commandManager.addCommand('client chat event', 'start');
-  CommandManager.prototype.addCommand = function(event, command) {
+  //     commandManager.addCommand('client chat event', 'customer', 'start');
+  CommandManager.prototype.addCommand = function(event, role, command) {
     if (!_.has(this._commands, event)) {
-      this._commands[event] = [];
+      this._commands[event] = {};
     }
 
-    if (!_.contains(this._commands[event], command)) {
-      this._commands[event].push(command);
+    if (!_.has(this._commands[event], role)) {
+      this._commands[event][role] = [];
     }
 
-    this._addCommand(event, command);
+    if (!_.contains(this._commands[event][role], command)) {
+      this._commands[event][role].push(command);
+    }
+
+    this._addCommand(event, command, role);
   };
 
   // ---
@@ -53,20 +57,24 @@
         return;
       }
 
-      // Loop over all of the event/command combinations and call
+      // Loop over all of the event/role/command combinations and call
       // **_addCommand** for each.
-      _.each(this._commands, _.bind(function(commands, event) {
-        _.each(commands, _.bind(this._addCommand, this, event));
+      _.each(this._commands, _.bind(function(cmdsByRole, event) {
+        _.each(cmdsByRole, _.bind(function(cmdList, role) {
+          _.each(cmdList, _.bind(this._addCommand, this, event, role));
+        }, this));
       }, this));
+
     }, this));
   };
 
   // Register the command with the FEM router.
-  CommandManager.prototype._addCommand = function(event, command) {
+  CommandManager.prototype._addCommand = function(event, role, command) {
     this._esbClient.send('socketIOGroup', {
       uri: 'addValidCommand',
       event: event,
-      command: command
+      command: command,
+      role: role
     });
   };
 
