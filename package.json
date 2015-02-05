@@ -1,6 +1,6 @@
 {
   "name": "help-fem-command-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Manages the valid command list in the fem router for a service.",
   "main": "help-fem-command-manager.js",
   "author": "Help.com",

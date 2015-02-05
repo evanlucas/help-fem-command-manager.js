@@ -15,7 +15,7 @@
   //     var CommandManager = require('help-fem-command-manager');
   //     var commandManager = new CommandManager(esbClient);
   //
-  //     commandManager.addCommand('client chat event', 'start');
+  //     commandManager.addCommand('client chat event', 'customer', 'start');
   var CommandManager = function(esbClient) {
     this._esbClient = esbClient;
 
@@ -28,17 +28,34 @@
   // ### CommandManager.addCommand
   // Adds the command for the given event to the FEM router.
   //
-  //     commandManager.addCommand('client chat event', 'start');
-  CommandManager.prototype.addCommand = function(event, command) {
-    if (!_.has(this._commands, event)) {
-      this._commands[event] = [];
-    }
+  //     commandManager.addCommand('client chat event', 'customer', 'start');
+  //
+  // This supports singular events, roles, and commands but also supports an
+  // array of them.  All combinations of them will be added.  For example, the
+  // following are equivalent.
+  //
+  //     commandManager.addCommand('client chat event', 'customer', 'end');
+  //     commandManager.addCommand('client chat event', 'user', 'end');
+  //     commandManager.addCommand('client chat event', 'manager', 'end');
+  //     commandManager.addCommand('client chat event', 'customer', 'message');
+  //     commandManager.addCommand('client chat event', 'user', 'message');
+  //     commandManager.addCommand('client chat event', 'manager', 'message');
+  //
+  //     commandManager.addCommand(
+  //       'client chat event',
+  //       ['customer', 'user', 'manager'],
+  //       ['end', 'message']
+  //     );
+  CommandManager.prototype.addCommand = function(events, roles, commands) {
+    events = _.isArray(events) ? events : [events];
+    roles = _.isArray(roles) ? roles : [roles];
+    commands = _.isArray(commands) ? commands : [commands];
 
-    if (!_.contains(this._commands[event], command)) {
-      this._commands[event].push(command);
-    }
-
-    this._addCommand(event, command);
+    _.each(events, _.bind(function(event) {
+      _.each(roles, _.bind(function(role) {
+        _.each(commands, _.bind(this._addCommand, this, event, role));
+      }, this));
+    }, this));
   };
 
   // ---
@@ -53,20 +70,41 @@
         return;
       }
 
-      // Loop over all of the event/command combinations and call
-      // **_addCommand** for each.
-      _.each(this._commands, _.bind(function(commands, event) {
-        _.each(commands, _.bind(this._addCommand, this, event));
+      // Loop over all of the event/role/command combinations and call
+      // **_registerCommand** for each.
+      _.each(this._commands, _.bind(function(cmdsByRole, event) {
+        _.each(cmdsByRole, _.bind(function(cmdList, role) {
+          _.each(cmdList, _.bind(this._registerCommand, this, event, role));
+        }, this));
       }, this));
+
     }, this));
   };
 
+  // Adds the singular event/role/command, registering it with FEM.
+  CommandManager.prototype._addCommand = function(event, role, command) {
+    if (!_.has(this._commands, event)) {
+      this._commands[event] = {};
+    }
+
+    if (!_.has(this._commands[event], role)) {
+      this._commands[event][role] = [];
+    }
+
+    if (!_.contains(this._commands[event][role], command)) {
+      this._commands[event][role].push(command);
+    }
+
+    this._registerCommand(event, command, role);
+  };
+
   // Register the command with the FEM router.
-  CommandManager.prototype._addCommand = function(event, command) {
+  CommandManager.prototype._registerCommand = function(event, role, command) {
     this._esbClient.send('socketIOGroup', {
       uri: 'addValidCommand',
       event: event,
-      command: command
+      command: command,
+      role: role
     });
   };
 
