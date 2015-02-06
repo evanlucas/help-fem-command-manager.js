@@ -95,7 +95,7 @@
       this._commands[event][role].push(command);
     }
 
-    this._registerCommand(event, command, role);
+    this._registerCommand(event, role, command);
   };
 
   // Register the command with the FEM router.
