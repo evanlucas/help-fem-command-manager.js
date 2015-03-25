@@ -51,11 +51,11 @@
     roles = _.isArray(roles) ? roles : [roles];
     commands = _.isArray(commands) ? commands : [commands];
 
-    _.each(events, _.bind(function(event) {
-      _.each(roles, _.bind(function(role) {
+    _.each(events, function(event) {
+      _.each(roles, function(role) {
         _.each(commands, _.bind(this._addCommand, this, event, role));
-      }, this));
-    }, this));
+      }, this);
+    }, this);
   };
 
   // ---
@@ -66,17 +66,17 @@
   CommandManager.prototype._registerRestartHandler = function() {
     this._esbClient.subscribe('serviceStartupGroup');
     this._esbClient.on('group.serviceStartupGroup', _.bind(function(message) {
-      if (message.body.microServiceName.toLowerCase() !== 'router') {
+      if (message.get('body.microServiceName').toLowerCase() !== 'router') {
         return;
       }
 
       // Loop over all of the event/role/command combinations and call
       // **_registerCommand** for each.
-      _.each(this._commands, _.bind(function(cmdsByRole, event) {
-        _.each(cmdsByRole, _.bind(function(cmdList, role) {
+      _.each(this._commands, function(cmdsByRole, event) {
+        _.each(cmdsByRole, function(cmdList, role) {
           _.each(cmdList, _.bind(this._registerCommand, this, event, role));
-        }, this));
-      }, this));
+        }, this);
+      }, this);
 
     }, this));
   };
