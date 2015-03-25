@@ -66,7 +66,7 @@
   CommandManager.prototype._registerRestartHandler = function() {
     this._esbClient.subscribe('serviceStartupGroup');
     this._esbClient.on('group.serviceStartupGroup', _.bind(function(message) {
-      if (message.body.microServiceName.toLowerCase() !== 'router') {
+      if (message.get('body.microServiceName').toLowerCase() !== 'router') {
         return;
       }
 
