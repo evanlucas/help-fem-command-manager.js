@@ -59,10 +59,14 @@
               </div>
               <h3 id="commandmanager-constructor-">CommandManager <em>constructor</em></h3>
 <p>Initializes the command manager.</p>
-<pre><code><span class="hljs-keyword">var</span> CommandManager = <span class="hljs-built_in">require</span>(<span class="hljs-string">'help-fem-command-manager'</span>);
+<pre><code><span class="hljs-keyword">var</span> HelpEsb = <span class="hljs-built_in">require</span>(<span class="hljs-string">'help-esb'</span>);
+<span class="hljs-keyword">var</span> esbClient = <span class="hljs-keyword">new</span> HelpEsb.Client(<span class="hljs-string">'tcp://localhost:1234'</span>);
+esbClient.login(<span class="hljs-string">'example-name'</span>);
+
+<span class="hljs-keyword">var</span> CommandManager = <span class="hljs-built_in">require</span>(<span class="hljs-string">'help-fem-command-manager'</span>);
 <span class="hljs-keyword">var</span> commandManager = <span class="hljs-keyword">new</span> CommandManager(esbClient);
 
-commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'start'</span>);
+commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'customer'</span>, <span class="hljs-string">'start'</span>);
 </code></pre>
             </div>
             
@@ -98,20 +102,35 @@ commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, 
               </div>
               <h3 id="commandmanager-addcommand">CommandManager.addCommand</h3>
 <p>Adds the command for the given event to the FEM router.</p>
-<pre><code>commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'start'</span>);
+<pre><code>commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'customer'</span>, <span class="hljs-string">'start'</span>);
+</code></pre><p>This supports singular events, roles, and commands but also supports an
+array of them.  All combinations of them will be added.  For example, the
+following are equivalent.</p>
+<pre><code>commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'customer'</span>, <span class="hljs-string">'end'</span>);
+commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'user'</span>, <span class="hljs-string">'end'</span>);
+commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'manager'</span>, <span class="hljs-string">'end'</span>);
+commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'customer'</span>, <span class="hljs-string">'message'</span>);
+commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'user'</span>, <span class="hljs-string">'message'</span>);
+commandManager.addCommand(<span class="hljs-string">'client chat event'</span>, <span class="hljs-string">'manager'</span>, <span class="hljs-string">'message'</span>);
+
+commandManager.addCommand(
+  <span class="hljs-string">'client chat event'</span>,
+  [<span class="hljs-string">'customer'</span>, <span class="hljs-string">'user'</span>, <span class="hljs-string">'manager'</span>],
+  [<span class="hljs-string">'end'</span>, <span class="hljs-string">'message'</span>]
+);
 </code></pre>
             </div>
             
-            <div class="content"><div class='highlight'><pre>  CommandManager.prototype.addCommand = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event, command)</span> </span>{
-    <span class="hljs-keyword">if</span> (!_.has(<span class="hljs-keyword">this</span>._commands, event)) {
-      <span class="hljs-keyword">this</span>._commands[event] = [];
-    }
+            <div class="content"><div class='highlight'><pre>  CommandManager.prototype.addCommand = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(events, roles, commands)</span> </span>{
+    events = _.isArray(events) ? events : [events];
+    roles = _.isArray(roles) ? roles : [roles];
+    commands = _.isArray(commands) ? commands : [commands];
 
-    <span class="hljs-keyword">if</span> (!_.contains(<span class="hljs-keyword">this</span>._commands[event], command)) {
-      <span class="hljs-keyword">this</span>._commands[event].push(command);
-    }
-
-    <span class="hljs-keyword">this</span>._addCommand(event, command);
+    _.each(events, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span> </span>{
+      _.each(roles, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(role)</span> </span>{
+        _.each(commands, _.bind(<span class="hljs-keyword">this</span>._addCommand, <span class="hljs-keyword">this</span>, event, role));
+      }, <span class="hljs-keyword">this</span>);
+    }, <span class="hljs-keyword">this</span>);
   };</pre></div></div>
             
         </li>
@@ -157,7 +176,7 @@ does.</p>
             <div class="content"><div class='highlight'><pre>  CommandManager.prototype._registerRestartHandler = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
     <span class="hljs-keyword">this</span>._esbClient.subscribe(<span class="hljs-string">'serviceStartupGroup'</span>);
     <span class="hljs-keyword">this</span>._esbClient.on(<span class="hljs-string">'group.serviceStartupGroup'</span>, _.bind(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(message)</span> </span>{
-      <span class="hljs-keyword">if</span> (message.body.microServiceName.toLowerCase() !== <span class="hljs-string">'router'</span>) {
+      <span class="hljs-keyword">if</span> (message.get(<span class="hljs-string">'body.microServiceName'</span>).toLowerCase() !== <span class="hljs-string">'router'</span>) {
         <span class="hljs-keyword">return</span>;
       }</pre></div></div>
             
@@ -170,14 +189,17 @@ does.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-9">&#182;</a>
               </div>
-              <p>Loop over all of the event/command combinations and call
-<strong>_addCommand</strong> for each.</p>
+              <p>Loop over all of the event/role/command combinations and call
+<strong>_registerCommand</strong> for each.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      _.each(<span class="hljs-keyword">this</span>._commands, _.bind(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(commands, event)</span> </span>{
-        _.each(commands, _.bind(<span class="hljs-keyword">this</span>._addCommand, <span class="hljs-keyword">this</span>, event));
-      }, <span class="hljs-keyword">this</span>));
+            <div class="content"><div class='highlight'><pre>      _.each(<span class="hljs-keyword">this</span>._commands, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(cmdsByRole, event)</span> </span>{
+        _.each(cmdsByRole, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(cmdList, role)</span> </span>{
+          _.each(cmdList, _.bind(<span class="hljs-keyword">this</span>._registerCommand, <span class="hljs-keyword">this</span>, event, role));
+        }, <span class="hljs-keyword">this</span>);
+      }, <span class="hljs-keyword">this</span>);
+
     }, <span class="hljs-keyword">this</span>));
   };</pre></div></div>
             
@@ -190,15 +212,45 @@ does.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-10">&#182;</a>
               </div>
+              <p>Adds the singular event/role/command, registering it with FEM.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  CommandManager.prototype._addCommand = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event, role, command)</span> </span>{
+    <span class="hljs-keyword">if</span> (!_.has(<span class="hljs-keyword">this</span>._commands, event)) {
+      <span class="hljs-keyword">this</span>._commands[event] = {};
+    }
+
+    <span class="hljs-keyword">if</span> (!_.has(<span class="hljs-keyword">this</span>._commands[event], role)) {
+      <span class="hljs-keyword">this</span>._commands[event][role] = [];
+    }
+
+    <span class="hljs-keyword">if</span> (!_.contains(<span class="hljs-keyword">this</span>._commands[event][role], command)) {
+      <span class="hljs-keyword">this</span>._commands[event][role].push(command);
+    }
+
+    <span class="hljs-keyword">this</span>._registerCommand(event, role, command);
+  };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
               <p>Register the command with the FEM router.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  CommandManager.prototype._addCommand = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event, command)</span> </span>{
+            <div class="content"><div class='highlight'><pre>  CommandManager.prototype._registerCommand = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event, role, command)</span> </span>{
     <span class="hljs-keyword">this</span>._esbClient.send(<span class="hljs-string">'socketIOGroup'</span>, {
       uri: <span class="hljs-string">'addValidCommand'</span>,
       event: event,
-      command: command
+      command: command,
+      role: role
     });
   };
 
