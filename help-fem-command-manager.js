@@ -100,7 +100,7 @@
 
   // Register the command with the FEM router.
   CommandManager.prototype._registerCommand = function(event, role, command) {
-    this._esbClient.send('socketIOGroup', {
+    return this._esbClient.rpcSend('socketIOGroup', {
       uri: 'addValidCommand',
       event: event,
       command: command,
